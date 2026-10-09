@@ -1,0 +1,498 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Translative AI</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #eef3ff;
+      color: #172554;
+    }
+    header {
+      background: #172554;
+      color: white;
+      padding: 22px 16px;
+      text-align: center;
+    }
+    header h1 { margin: 0 0 7px; }
+    header p { margin: 0; color: #dbeafe; }
+    main { max-width: 720px; margin: 22px auto; padding: 0 14px; }
+    .card {
+      background: white;
+      padding: 18px;
+      margin-bottom: 16px;
+      border-radius: 16px;
+      box-shadow: 0 4px 18px #17255412;
+    }
+    label { display: block; font-weight: bold; margin: 12px 0 6px; }
+    input, select, button {
+      width: 100%;
+      padding: 12px;
+      border-radius: 9px;
+      font-size: 16px;
+    }
+    input, select { border: 1px solid #cbd5e1; background: white; }
+    button {
+      border: 0;
+      background: #2563eb;
+      color: white;
+      font-weight: bold;
+      margin-top: 12px;
+      cursor: pointer;
+    }
+    button.secondary { background: #475569; }
+    button.danger { background: #dc2626; }
+    button:disabled { opacity: .55; cursor: not-allowed; }
+    .myid {
+      overflow-wrap: anywhere;
+      background: #eff6ff;
+      padding: 12px;
+      border-radius: 8px;
+      font-weight: bold;
+    }
+    .status { color: #475569; line-height: 1.5; }
+    .caption {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 12px;
+      margin: 10px 0;
+      overflow-wrap: anywhere;
+    }
+    .caption strong { display: block; margin-bottom: 5px; }
+    .small { font-size: 13px; color: #64748b; line-height: 1.5; }
+    audio { width: 100%; margin-top: 10px; }
+  </style>
+</head>
+<body>
+<header>
+  <h1>🌐 Translative AI</h1>
+  <p>Your language. Your call.</p>
+</header>
+
+<main>
+  <section class="card">
+    <h2>1. Your language</h2>
+
+    <label for="sourceLang">I speak</label>
+    <select id="sourceLang">
+      <option value="ta-IN">Tamil</option>
+      <option value="en-US">English</option>
+      <option value="hi-IN">Hindi</option>
+      <option value="te-IN">Telugu</option>
+      <option value="ml-IN">Malayalam</option>
+      <option value="kn-IN">Kannada</option>
+      <option value="fr-FR">French</option>
+      <option value="es-ES">Spanish</option>
+    </select>
+
+    <label for="targetLang">I want the other person to hear</label>
+    <select id="targetLang">
+      <option value="en-US">English</option>
+      <option value="ta-IN">Tamil</option>
+      <option value="hi-IN">Hindi</option>
+      <option value="te-IN">Telugu</option>
+      <option value="ml-IN">Malayalam</option>
+      <option value="kn-IN">Kannada</option>
+      <option value="fr-FR">French</option>
+      <option value="es-ES">Spanish</option>
+    </select>
+
+    <p class="small">
+      Each caller chooses their own speaking and target languages.
+      Both people must enable their microphone.
+    </p>
+  </section>
+
+  <section class="card">
+    <h2>2. Connect your call</h2>
+    <p class="status">Your room ID:</p>
+    <div class="myid" id="myId">Connecting...</div>
+    <button id="copyId" class="secondary">Copy my ID</button>
+
+    <label for="remoteId">Other person's room ID</label>
+    <input id="remoteId" placeholder="Paste their ID here" />
+    <button id="micButton">1. Enable microphone</button>
+    <button id="callButton" disabled>2. Call this person</button>
+    <button id="muteButton" class="secondary" disabled>Mute microphone</button>
+    <button id="hangupButton" class="danger" disabled>End call</button>
+
+    <p class="status" id="status">Starting calling service...</p>
+    <audio id="remoteAudio" autoplay playsinline controls></audio>
+  </section>
+
+  <section class="card">
+    <h2>3. Live translation</h2>
+    <div class="caption">
+      <strong>Your recognized speech</strong>
+      <div id="ownCaption">Waiting for speech...</div>
+    </div>
+    <div class="caption">
+      <strong>Translated speech from the other person</strong>
+      <div id="remoteCaption">Waiting for translation...</div>
+    </div>
+    <p class="small">
+      Use headphones to reduce echo. Translation may be delayed or inaccurate.
+      Speech recognition support depends on the browser.
+    </p>
+  </section>
+</main>
+
+<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<script>
+  const $ = id => document.getElementById(id);
+
+  const languageCodes = {
+    "ta-IN": "ta",
+    "en-US": "en",
+    "hi-IN": "hi",
+    "te-IN": "te",
+    "ml-IN": "ml",
+    "kn-IN": "kn",
+    "fr-FR": "fr",
+    "es-ES": "es"
+  };
+
+  let peer;
+  let localStream = null;
+  let currentCall = null;
+  let dataConnection = null;
+  let pendingCall = null;
+  let recognition = null;
+  let recognitionActive = false;
+  let muted = false;
+  let callStarted = false;
+
+  function status(message) {
+    $("status").textContent = message;
+  }
+
+  // Create a PeerJS ID for this browser.
+  try {
+    peer = new Peer();
+
+    peer.on("open", id => {
+      $("myId").textContent = id;
+      status("Ready. Both users should enable their microphones.");
+    });
+
+    peer.on("error", error => {
+      status("Calling service error: " + error.type +
+        ". Refresh the page and try again.");
+    });
+
+    peer.on("call", incomingCall => {
+      if (!localStream) {
+        pendingCall = incomingCall;
+        status("Incoming call. Enable your microphone to answer.");
+        return;
+      }
+      answerCall(incomingCall);
+    });
+
+    peer.on("connection", connection => {
+      setupDataConnection(connection);
+    });
+
+    peer.on("disconnected", () => {
+      status("Disconnected from calling service. Check your internet.");
+    });
+  } catch (error) {
+    status("Could not start calling service. Check your internet.");
+  }
+
+  async function enableMicrophone() {
+    try {
+      localStream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true
+        },
+        video: false
+      });
+
+      $("micButton").disabled = true;
+      $("callButton").disabled = false;
+      status("Microphone ready. Share your ID and enter the other ID.");
+
+      if (pendingCall) {
+        const incoming = pendingCall;
+        pendingCall = null;
+        answerCall(incoming);
+      }
+    } catch (error) {
+      status("Microphone access failed. Allow microphone permission and use HTTPS.");
+    }
+  }
+
+  async function startCall() {
+    const remoteId = $("remoteId").value.trim();
+
+    if (!localStream) {
+      status("Enable the microphone first.");
+      return;
+    }
+    if (!remoteId || remoteId === $("myId").textContent) {
+      status("Enter the other person's valid room ID.");
+      return;
+    }
+
+    try {
+      status("Calling...");
+      currentCall = peer.call(remoteId, localStream);
+      if (!currentCall) throw new Error("Call could not start");
+      setupMediaCall(currentCall);
+
+      const connection = peer.connect(remoteId, { reliable: true });
+      setupDataConnection(connection);
+    } catch (error) {
+      status("Call failed. Check the other person's ID and try again.");
+    }
+  }
+
+  function answerCall(incomingCall) {
+    currentCall = incomingCall;
+    currentCall.answer(localStream);
+    setupMediaCall(currentCall);
+    status("Answering call...");
+  }
+
+  function setupMediaCall(call) {
+    call.on("stream", stream => {
+      $("remoteAudio").srcObject = stream;
+      $("remoteAudio").play().catch(() => {
+        status("Call connected. Tap the audio player if sound is blocked.");
+      });
+      callStarted = true;
+      updateCallButtons();
+      status("Call connected. Translation starts when the data link is ready.");
+    });
+
+    call.on("close", () => {
+      status("The other person ended the call.");
+      stopTranslation();
+      currentCall = null;
+      updateCallButtons();
+    });
+
+    call.on("error", () => {
+      status("Audio connection failed. Try reconnecting.");
+    });
+  }
+
+  function setupDataConnection(connection) {
+    dataConnection = connection;
+
+    connection.on("open", () => {
+      status("Translation link connected. You can start speaking.");
+      callStarted = true;
+      updateCallButtons();
+      startTranslation();
+    });
+
+    connection.on("data", message => {
+      if (!message || typeof message !== "object") return;
+
+      if (message.type === "translation") {
+        $("remoteCaption").textContent =
+          message.text || "No translated text received.";
+
+        // Speak only the translated message, never the original.
+        if (message.text && "speechSynthesis" in window) {
+          window.speechSynthesis.cancel();
+          const utterance = new SpeechSynthesisUtterance(message.text);
+          utterance.lang = message.language || "en-US";
+          window.speechSynthesis.speak(utterance);
+        }
+      } else if (message.type === "notice") {
+        status(message.text);
+      }
+    });
+
+    connection.on("close", () => {
+      dataConnection = null;
+      stopRecognition();
+      status("Translation link closed.");
+    });
+
+    connection.on("error", () => {
+      status("Translation link error. Try reconnecting.");
+    });
+  }
+
+  function updateCallButtons() {
+    $("hangupButton").disabled = !currentCall && !dataConnection;
+    $("muteButton").disabled = !localStream;
+  }
+
+  async function translateText(text) {
+    const source = languageCodes[$("sourceLang").value];
+    const target = languageCodes[$("targetLang").value];
+
+    if (source === target) return text;
+
+    const url =
+      "https://api.mymemory.translated.net/get?q=" +
+      encodeURIComponent(text) +
+      "&langpair=" + encodeURIComponent(source + "|" + target);
+
+    const response = await fetch(url);
+    if (!response.ok) throw new Error("Translation request failed");
+
+    const result = await response.json();
+
+    if (result.responseStatus !== 200 ||
+        !result.responseData ||
+        !result.responseData.translatedText) {
+      throw new Error("Translation service could not translate this text");
+    }
+
+    return result.responseData.translatedText;
+  }
+
+  function startTranslation() {
+    if (!dataConnection || !dataConnection.open || !localStream) return;
+    if (recognitionActive) return;
+
+    const SpeechRecognition =
+      window.SpeechRecognition || window.webkitSpeechRecognition;
+
+    if (!SpeechRecognition) {
+      status("Speech recognition is not supported in this browser.");
+      return;
+    }
+
+    recognitionActive = true;
+    recognition = new SpeechRecognition();
+    recognition.lang = $("sourceLang").value;
+    recognition.continuous = true;
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+
+    recognition.onresult = async event => {
+      const result = event.results[event.results.length - 1];
+      if (!result.isFinal) return;
+
+      const originalText = result[0].transcript.trim();
+      if (!originalText) return;
+
+      $("ownCaption").textContent = originalText;
+
+      try {
+        const translatedText = await translateText(originalText);
+
+        if (dataConnection && dataConnection.open) {
+          dataConnection.send({
+            type: "translation",
+            text: translatedText,
+            language: $("targetLang").value
+          });
+        }
+      } catch (error) {
+        status("Translation unavailable. Check internet or API limits.");
+      }
+    };
+
+    recognition.onerror = event => {
+      if (event.error !== "no-speech" && event.error !== "aborted") {
+        status("Speech recognition issue: " + event.error);
+      }
+    };
+
+    recognition.onend = () => {
+      if (recognitionActive && dataConnection && dataConnection.open) {
+        try {
+          recognition.start();
+        } catch (error) {
+          // The browser may still be restarting recognition.
+        }
+      }
+    };
+
+    try {
+      recognition.start();
+    } catch (error) {
+      recognitionActive = false;
+      status("Could not start speech recognition. Try again.");
+    }
+  }
+
+  function stopRecognition() {
+    recognitionActive = false;
+    if (recognition) {
+      try { recognition.stop(); } catch (error) {}
+      recognition = null;
+    }
+  }
+
+  function stopTranslation() {
+    stopRecognition();
+    if ("speechSynthesis" in window) {
+      window.speechSynthesis.cancel();
+    }
+  }
+
+  function hangUp() {
+    stopTranslation();
+
+    if (currentCall) {
+      currentCall.close();
+      currentCall = null;
+    }
+    if (dataConnection) {
+      dataConnection.close();
+      dataConnection = null;
+    }
+
+    $("remoteAudio").srcObject = null;
+    callStarted = false;
+    updateCallButtons();
+    status("Call ended. Your room ID is still available.");
+  }
+
+  $("micButton").addEventListener("click", enableMicrophone);
+  $("callButton").addEventListener("click", startCall);
+  $("hangupButton").addEventListener("click", hangUp);
+
+  $("muteButton").addEventListener("click", () => {
+    if (!localStream) return;
+    muted = !muted;
+    localStream.getAudioTracks().forEach(track => {
+      track.enabled = !muted;
+    });
+    $("muteButton").textContent =
+      muted ? "Unmute microphone" : "Mute microphone";
+  });
+
+  $("copyId").addEventListener("click", async () => {
+    const id = $("myId").textContent;
+    try {
+      await navigator.clipboard.writeText(id);
+      status("Room ID copied. Share it with the other person.");
+    } catch (error) {
+      status("Select and copy your room ID manually.");
+    }
+  });
+
+  $("sourceLang").addEventListener("change", () => {
+    if (recognitionActive) {
+      stopRecognition();
+      startTranslation();
+    }
+  });
+
+  window.addEventListener("beforeunload", () => {
+    stopTranslation();
+    if (localStream) {
+      localStream.getTracks().forEach(track => track.stop());
+    }
+  });
+</script>
+</body>
+</html>
