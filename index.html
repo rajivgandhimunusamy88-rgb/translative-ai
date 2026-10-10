@@ -159,6 +159,7 @@
   };
 
   let peer;
+  let peerReady = false;
   let localStream = null;
   let currentCall = null;
   let dataConnection = null;
@@ -177,13 +178,16 @@
     peer = new Peer();
 
     peer.on("open", id => {
+      peerReady = true;
       $("myId").textContent = id;
-      status("Ready. Both users should enable their microphones.");
+      $("callButton").disabled = !localStream;
+      status("Calling service ready. Share this ID with the other person.");
     });
 
     peer.on("error", error => {
-      status("Calling service error: " + error.type +
-        ". Refresh the page and try again.");
+      peerReady = Boolean(peer && peer.open);
+      status("Calling service error: " + (error.type || error.message || "unknown") +
+        ". Refresh both devices and try again.");
     });
 
     peer.on("call", incomingCall => {
@@ -218,8 +222,10 @@
       });
 
       $("micButton").disabled = true;
-      $("callButton").disabled = false;
-      status("Microphone ready. Share your ID and enter the other ID.");
+      $("callButton").disabled = !peerReady;
+      status(peerReady
+        ? "Microphone ready. Enter the other person's current Peer ID."
+        : "Microphone ready, but calling service is still connecting. Wait for your ID to appear.");
 
       if (pendingCall) {
         const incoming = pendingCall;
@@ -234,11 +240,15 @@
   async function startCall() {
     const remoteId = $("remoteId").value.trim();
 
+    if (!peer || !peerReady || !peer.open) {
+      status("Calling service is not ready yet. Wait until your Peer ID appears, then try again.");
+      return;
+    }
     if (!localStream) {
       status("Enable the microphone first.");
       return;
     }
-    if (!remoteId || remoteId === $("myId").textContent) {
+    if (!remoteId || remoteId === $("myId").textContent || $("myId").textContent === "Connecting...") {
       status("Enter the other person's valid room ID.");
       return;
     }
@@ -252,7 +262,9 @@
       const connection = peer.connect(remoteId, { reliable: true });
       setupDataConnection(connection);
     } catch (error) {
-      status("Call failed. Check the other person's ID and try again.");
+      console.error("Call start failed:", error);
+      status("Call could not start: " + (error.message || error.type || "unknown error") +
+        ". Check that both Peer IDs are current and the service is ready.");
     }
   }
 
