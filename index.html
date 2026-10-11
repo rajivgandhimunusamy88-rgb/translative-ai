@@ -67,6 +67,11 @@
     .caption strong { display: block; margin-bottom: 5px; }
     .small { font-size: 13px; color: #64748b; line-height: 1.5; }
     audio { width: 100%; margin-top: 10px; }
+    .hidden { display: none !important; }
+    .profile { background: #ecfdf5; border: 1px solid #a7f3d0; padding: 12px; border-radius: 10px; overflow-wrap: anywhere; }
+    .row { display: flex; gap: 8px; }
+    .row button { flex: 1; }
+    .notice { font-size: 13px; line-height: 1.5; color: #64748b; }
   </style>
 </head>
 <body>
@@ -76,6 +81,30 @@
 </header>
 
 <main>
+  <section class="card" id="loginCard">
+    <h2>👤 Login to Translative AI</h2>
+    <p class="small">Create a profile and get your personal Translative ID.</p>
+    <label for="userName">Your name</label>
+    <input id="userName" placeholder="Enter your name" autocomplete="name" />
+    <label for="userEmail">Email (for this demo profile)</label>
+    <input id="userEmail" type="email" placeholder="Enter your email" autocomplete="email" />
+    <div class="row">
+      <button id="signupButton">Create profile</button>
+      <button id="loginButton" class="secondary">Continue on this device</button>
+    </div>
+    <p class="notice">Prototype note: this demo stores the profile only in this browser. It is not secure account authentication and does not sync profiles across devices yet.</p>
+    <p class="status" id="authStatus" role="status"></p>
+  </section>
+
+  <section class="card hidden" id="profileCard">
+    <h2>Welcome, <span id="profileName"></span>! 👋</h2>
+    <div class="profile">Your personal ID: <strong id="personalId"></strong></div>
+    <button id="copyPersonalId" class="secondary">Copy personal ID</button>
+    <p class="small">Your personal ID identifies this demo profile. To call someone right now, share the temporary Live Room ID shown below. Permanent account-to-account calling needs a database/backend.</p>
+    <button id="logoutButton" class="danger">Log out</button>
+  </section>
+
+  <div id="appContent" class="hidden">
   <section class="card">
     <h2>1. Your language</h2>
 
@@ -91,7 +120,7 @@
       <option value="es-ES">Spanish</option>
     </select>
 
-    <label for="targetLang">I want the other person to hear</label>
+    <label for="targetLang">Language I want to hear from the other person</label>
     <select id="targetLang">
       <option value="en-US">English</option>
       <option value="ta-IN">Tamil</option>
@@ -141,6 +170,7 @@
       Speech recognition support depends on the browser.
     </p>
   </section>
+  </div>
 </main>
 
 <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
@@ -308,19 +338,22 @@
       startTranslation();
     });
 
-    connection.on("data", message => {
+    connection.on("data", async message => {
       if (!message || typeof message !== "object") return;
 
-      if (message.type === "translation") {
-        $("remoteCaption").textContent =
-          message.text || "No translated text received.";
-
-        // Speak only the translated message, never the original.
-        if (message.text && "speechSynthesis" in window) {
-          window.speechSynthesis.cancel();
-          const utterance = new SpeechSynthesisUtterance(message.text);
-          utterance.lang = message.language || "en-US";
-          window.speechSynthesis.speak(utterance);
+      if (message.type === "speech") {
+        try {
+          const translated = await translateText(message.text, message.sourceLanguage, $("targetLang").value);
+          $("remoteCaption").textContent = translated;
+          if (translated && "speechSynthesis" in window) {
+            window.speechSynthesis.cancel();
+            const utterance = new SpeechSynthesisUtterance(translated);
+            utterance.lang = $("targetLang").value;
+            window.speechSynthesis.speak(utterance);
+          }
+        } catch (error) {
+          $("remoteCaption").textContent = "Translation failed. Please try speaking again.";
+          status("Translation failed. Check internet or translation service limits.");
         }
       } else if (message.type === "notice") {
         status(message.text);
@@ -343,9 +376,9 @@
     $("muteButton").disabled = !localStream;
   }
 
-  async function translateText(text) {
-    const source = languageCodes[$("sourceLang").value];
-    const target = languageCodes[$("targetLang").value];
+  async function translateText(text, sourceLocale, targetLocale) {
+    const source = languageCodes[sourceLocale] || languageCodes[$("sourceLang").value];
+    const target = languageCodes[targetLocale] || languageCodes[$("targetLang").value];
 
     if (source === target) return text;
 
@@ -397,13 +430,11 @@
       $("ownCaption").textContent = originalText;
 
       try {
-        const translatedText = await translateText(originalText);
-
         if (dataConnection && dataConnection.open) {
           dataConnection.send({
-            type: "translation",
-            text: translatedText,
-            language: $("targetLang").value
+            type: "speech",
+            text: originalText,
+            sourceLanguage: $("sourceLang").value
           });
         }
       } catch (error) {
@@ -467,6 +498,57 @@
     updateCallButtons();
     status("Call ended. Your room ID is still available.");
   }
+
+  // Demo profile: local to this browser only (not secure server-side authentication).
+  function makePersonalId() {
+    return "TA-" + Math.random().toString(36).slice(2, 8).toUpperCase();
+  }
+
+  function showProfile(profile) {
+    $("profileName").textContent = profile.name;
+    $("personalId").textContent = profile.id;
+    $("loginCard").classList.add("hidden");
+    $("profileCard").classList.remove("hidden");
+    $("appContent").classList.remove("hidden");
+  }
+
+  function createProfile() {
+    const name = $("userName").value.trim();
+    const email = $("userEmail").value.trim().toLowerCase();
+    if (!name || !email || !email.includes("@")) {
+      $("authStatus").textContent = "Enter your name and a valid email address.";
+      return;
+    }
+    const profile = { name, email, id: makePersonalId() };
+    localStorage.setItem("translativeDemoProfile", JSON.stringify(profile));
+    showProfile(profile);
+  }
+
+  function continueProfile() {
+    const saved = localStorage.getItem("translativeDemoProfile");
+    if (saved) {
+      try { showProfile(JSON.parse(saved)); return; } catch (error) {}
+    }
+    $("authStatus").textContent = "No profile saved on this device yet. Create a profile first.";
+  }
+
+  $("signupButton").addEventListener("click", createProfile);
+  $("loginButton").addEventListener("click", continueProfile);
+  $("logoutButton").addEventListener("click", () => {
+    localStorage.removeItem("translativeDemoProfile");
+    $("profileCard").classList.add("hidden");
+    $("appContent").classList.add("hidden");
+    $("loginCard").classList.remove("hidden");
+  });
+  $("copyPersonalId").addEventListener("click", async () => {
+    try {
+      await navigator.clipboard.writeText($("personalId").textContent);
+      $("authStatus").textContent = "Personal ID copied.";
+    } catch (error) {
+      $("authStatus").textContent = "Please select and copy your personal ID.";
+    }
+  });
+  continueProfile();
 
   $("micButton").addEventListener("click", enableMicrophone);
   $("callButton").addEventListener("click", startCall);
