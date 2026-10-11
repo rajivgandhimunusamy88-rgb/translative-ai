@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Translative AI</title>
+  <title>Translative AI — Speak Without Borders</title>
   <style>
     * { box-sizing: border-box; }
     body {
@@ -72,12 +72,18 @@
     .row { display: flex; gap: 8px; }
     .row button { flex: 1; }
     .notice { font-size: 13px; line-height: 1.5; color: #64748b; }
+    @media (max-width: 600px) {
+      main { margin-top: 12px; }
+      .card { padding: 16px; }
+      header { padding: 24px 14px; }
+      button { min-height: 46px; }
+    }
   </style>
 </head>
 <body>
 <header>
   <h1>🌐 Translative AI</h1>
-  <p>Your language. Your call.</p>
+  <p>Speak naturally. Connect across languages.</p>
 </header>
 
 <main>
@@ -139,24 +145,22 @@
   </section>
 
   <section class="card">
-    <h2>2. Connect your call</h2>
+    <h2>2. Connect with another person</h2>
     <p class="status">Your room ID:</p>
     <div class="myid" id="myId">Connecting...</div>
     <button id="copyId" class="secondary">Copy my ID</button>
 
     <label for="remoteId">Other person's room ID</label>
     <input id="remoteId" placeholder="Paste their ID here" />
-    <button id="micButton">1. Enable microphone</button>
-    <button id="callButton" disabled>2. Call this person</button>
-    <button id="muteButton" class="secondary" disabled>Mute microphone</button>
-    <button id="hangupButton" class="danger" disabled>End call</button>
+    <button id="callButton" disabled>Connect to this person</button>
+    <button id="hangupButton" class="danger" disabled>Disconnect</button>
 
-    <p class="status" id="status">Starting calling service...</p>
-    <audio id="remoteAudio" autoplay playsinline controls></audio>
+    <p class="status" id="status">Starting connection service...</p>
+    <p class="small">Translation-only connection: recognized text is sent to your partner, then translated and spoken. Raw microphone audio is not transmitted.</p>
   </section>
 
   <section class="card">
-    <h2>3. Live translation</h2>
+    <h2>3. Live voice translation</h2>
     <div class="caption">
       <strong>Your recognized speech</strong>
       <div id="ownCaption">Waiting for speech...</div>
@@ -166,8 +170,7 @@
       <div id="remoteCaption">Waiting for translation...</div>
     </div>
     <p class="small">
-      Use headphones to reduce echo. Translation may be delayed or inaccurate.
-      Speech recognition support depends on the browser.
+      Translation may be delayed or inaccurate. Browser speech recognition support depends on your browser and internet connection.
     </p>
   </section>
   </div>
@@ -190,142 +193,43 @@
 
   let peer;
   let peerReady = false;
-  let localStream = null;
-  let currentCall = null;
   let dataConnection = null;
-  let pendingCall = null;
   let recognition = null;
   let recognitionActive = false;
-  let muted = false;
   let callStarted = false;
 
   function status(message) {
     $("status").textContent = message;
   }
 
-  // Create a PeerJS ID for this browser.
+  // PeerJS data-only connection: do not send raw microphone audio.
   try {
     peer = new Peer();
-
     peer.on("open", id => {
       peerReady = true;
       $("myId").textContent = id;
-      $("callButton").disabled = !localStream;
-      status("Calling service ready. Share this ID with the other person.");
+      $("callButton").disabled = false;
+      status("Connection service ready. Share this live room ID.");
     });
-
     peer.on("error", error => {
       peerReady = Boolean(peer && peer.open);
-      status("Calling service error: " + (error.type || error.message || "unknown") +
-        ". Refresh both devices and try again.");
+      status("Connection service error: " + (error.type || error.message || "unknown") + ". Refresh both devices and try again.");
     });
-
-    peer.on("call", incomingCall => {
-      if (!localStream) {
-        pendingCall = incomingCall;
-        status("Incoming call. Enable your microphone to answer.");
-        return;
-      }
-      answerCall(incomingCall);
-    });
-
-    peer.on("connection", connection => {
-      setupDataConnection(connection);
-    });
-
-    peer.on("disconnected", () => {
-      status("Disconnected from calling service. Check your internet.");
-    });
-  } catch (error) {
-    status("Could not start calling service. Check your internet.");
-  }
-
-  async function enableMicrophone() {
-    try {
-      localStream = await navigator.mediaDevices.getUserMedia({
-        audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true
-        },
-        video: false
-      });
-
-      $("micButton").disabled = true;
-      $("callButton").disabled = !peerReady;
-      status(peerReady
-        ? "Microphone ready. Enter the other person's current Peer ID."
-        : "Microphone ready, but calling service is still connecting. Wait for your ID to appear.");
-
-      if (pendingCall) {
-        const incoming = pendingCall;
-        pendingCall = null;
-        answerCall(incoming);
-      }
-    } catch (error) {
-      status("Microphone access failed. Allow microphone permission and use HTTPS.");
-    }
-  }
+    peer.on("connection", connection => setupDataConnection(connection));
+    peer.on("disconnected", () => status("Disconnected from connection service. Check your internet."));
+  } catch (error) { status("Could not start connection service. Check your internet."); }
 
   async function startCall() {
     const remoteId = $("remoteId").value.trim();
-
-    if (!peer || !peerReady || !peer.open) {
-      status("Calling service is not ready yet. Wait until your Peer ID appears, then try again.");
-      return;
-    }
-    if (!localStream) {
-      status("Enable the microphone first.");
-      return;
-    }
+    if (!peer || !peerReady || !peer.open) { status("Wait until your live room ID appears."); return; }
     if (!remoteId || remoteId === $("myId").textContent || $("myId").textContent === "Connecting...") {
-      status("Enter the other person's valid room ID.");
-      return;
+      status("Enter the other person's valid live room ID."); return;
     }
-
     try {
-      status("Calling...");
-      currentCall = peer.call(remoteId, localStream);
-      if (!currentCall) throw new Error("Call could not start");
-      setupMediaCall(currentCall);
-
+      status("Connecting to partner...");
       const connection = peer.connect(remoteId, { reliable: true });
       setupDataConnection(connection);
-    } catch (error) {
-      console.error("Call start failed:", error);
-      status("Call could not start: " + (error.message || error.type || "unknown error") +
-        ". Check that both Peer IDs are current and the service is ready.");
-    }
-  }
-
-  function answerCall(incomingCall) {
-    currentCall = incomingCall;
-    currentCall.answer(localStream);
-    setupMediaCall(currentCall);
-    status("Answering call...");
-  }
-
-  function setupMediaCall(call) {
-    call.on("stream", stream => {
-      $("remoteAudio").srcObject = stream;
-      $("remoteAudio").play().catch(() => {
-        status("Call connected. Tap the audio player if sound is blocked.");
-      });
-      callStarted = true;
-      updateCallButtons();
-      status("Call connected. Translation starts when the data link is ready.");
-    });
-
-    call.on("close", () => {
-      status("The other person ended the call.");
-      stopTranslation();
-      currentCall = null;
-      updateCallButtons();
-    });
-
-    call.on("error", () => {
-      status("Audio connection failed. Try reconnecting.");
-    });
+    } catch (error) { status("Could not connect. Check both current room IDs and internet."); }
   }
 
   function setupDataConnection(connection) {
@@ -372,8 +276,7 @@
   }
 
   function updateCallButtons() {
-    $("hangupButton").disabled = !currentCall && !dataConnection;
-    $("muteButton").disabled = !localStream;
+    $("hangupButton").disabled = !dataConnection;
   }
 
   async function translateText(text, sourceLocale, targetLocale) {
@@ -402,7 +305,7 @@
   }
 
   function startTranslation() {
-    if (!dataConnection || !dataConnection.open || !localStream) return;
+    if (!dataConnection || !dataConnection.open) return;
     if (recognitionActive) return;
 
     const SpeechRecognition =
@@ -483,20 +386,11 @@
 
   function hangUp() {
     stopTranslation();
-
-    if (currentCall) {
-      currentCall.close();
-      currentCall = null;
-    }
-    if (dataConnection) {
-      dataConnection.close();
-      dataConnection = null;
-    }
-
-    $("remoteAudio").srcObject = null;
+    if (dataConnection) { dataConnection.close(); dataConnection = null; }
     callStarted = false;
+    $("remoteCaption").textContent = "Disconnected. Waiting for translation...";
     updateCallButtons();
-    status("Call ended. Your room ID is still available.");
+    status("Disconnected. Your live room ID is still available.");
   }
 
   // Demo profile: local to this browser only (not secure server-side authentication).
@@ -550,19 +444,8 @@
   });
   continueProfile();
 
-  $("micButton").addEventListener("click", enableMicrophone);
   $("callButton").addEventListener("click", startCall);
   $("hangupButton").addEventListener("click", hangUp);
-
-  $("muteButton").addEventListener("click", () => {
-    if (!localStream) return;
-    muted = !muted;
-    localStream.getAudioTracks().forEach(track => {
-      track.enabled = !muted;
-    });
-    $("muteButton").textContent =
-      muted ? "Unmute microphone" : "Mute microphone";
-  });
 
   $("copyId").addEventListener("click", async () => {
     const id = $("myId").textContent;
@@ -583,9 +466,7 @@
 
   window.addEventListener("beforeunload", () => {
     stopTranslation();
-    if (localStream) {
-      localStream.getTracks().forEach(track => track.stop());
-    }
+    if (dataConnection) { try { dataConnection.close(); } catch (error) {} }
   });
 </script>
 </body>
