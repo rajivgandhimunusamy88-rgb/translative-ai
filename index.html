@@ -1,44 +1,499 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Translative AI — Voice Call</title>
-<style>
-:root{--navy:#102044;--blue:#356dff;--pale:#edf3ff;--text:#18233d;--muted:#66738d;--line:#dce4f2;--green:#07865c}
-*{box-sizing:border-box}body{margin:0;background:linear-gradient(145deg,#edf3ff,#f8faff 55%,#e7f9f5);font-family:Inter,Arial,sans-serif;color:var(--text)}header{padding:28px 16px;text-align:center;background:var(--navy);color:white}header h1{margin:0 0 7px;font-size:clamp(26px,5vw,36px)}header p{margin:0;color:#c9d8ff}main{max-width:760px;margin:24px auto;padding:0 14px 40px}.card{background:white;border:1px solid #e6ebf5;border-radius:20px;padding:22px;margin-bottom:16px;box-shadow:0 10px 32px #14234a0d}.card h2{margin:0 0 12px;font-size:21px}label{display:block;font-weight:700;font-size:14px;margin:14px 0 7px}input,button{width:100%;padding:13px 14px;border-radius:11px;font-size:15px}input{border:1px solid var(--line);outline:none}input:focus{border-color:var(--blue);box-shadow:0 0 0 3px #356dff1c}button{border:0;background:var(--blue);color:#fff;font-weight:700;margin-top:10px;cursor:pointer;transition:.15s}button:hover{filter:brightness(.96)}button:disabled{opacity:.45;cursor:not-allowed}.secondary{background:#e9efff;color:#2348a5}.danger{background:#d9364f}.row{display:flex;gap:10px}.row>*{flex:1}.small{font-size:13px;line-height:1.55;color:var(--muted)}.status{padding:12px;background:#f5f8ff;border:1px solid #e4eaff;border-radius:11px;line-height:1.5;font-size:14px;color:#40516e;overflow-wrap:anywhere}.myid{background:#eef4ff;border:1px dashed #9bb7ff;padding:15px;border-radius:12px;font-size:18px;font-weight:800;overflow-wrap:anywhere;letter-spacing:.3px}.profile{background:#edfbf5;border:1px solid #b7ecd4;padding:14px;border-radius:12px;overflow-wrap:anywhere}.hidden{display:none!important}.pill{display:inline-block;padding:5px 9px;border-radius:30px;background:#e8f8ef;color:#08784f;font-size:12px;font-weight:800;margin-bottom:12px}.call-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}.call-actions button{margin-top:8px}.full{grid-column:1/-1}.footer{text-align:center;font-size:12px;color:var(--muted);padding:8px}.status strong{color:var(--text)}audio{width:100%;margin-top:12px}@media(max-width:520px){.card{padding:17px}.row{flex-direction:column;gap:0}.call-actions{grid-template-columns:1fr}.full{grid-column:auto}}
-</style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Translative AI — Speak Without Borders</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #eef3ff;
+      color: #172554;
+    }
+    header {
+      background: #172554;
+      color: white;
+      padding: 22px 16px;
+      text-align: center;
+    }
+    header h1 { margin: 0 0 7px; }
+    header p { margin: 0; color: #dbeafe; }
+    main { max-width: 720px; margin: 22px auto; padding: 0 14px; }
+    .card {
+      background: white;
+      padding: 18px;
+      margin-bottom: 16px;
+      border-radius: 16px;
+      box-shadow: 0 4px 18px #17255412;
+    }
+    label { display: block; font-weight: bold; margin: 12px 0 6px; }
+    input, select, button {
+      width: 100%;
+      padding: 12px;
+      border-radius: 9px;
+      font-size: 16px;
+    }
+    input, select { border: 1px solid #cbd5e1; background: white; }
+    button {
+      border: 0;
+      background: #2563eb;
+      color: white;
+      font-weight: bold;
+      margin-top: 12px;
+      cursor: pointer;
+    }
+    button.secondary { background: #475569; }
+    button.danger { background: #dc2626; }
+    button:disabled { opacity: .55; cursor: not-allowed; }
+    .myid {
+      overflow-wrap: anywhere;
+      background: #eff6ff;
+      padding: 12px;
+      border-radius: 8px;
+      font-weight: bold;
+    }
+    .status { color: #475569; line-height: 1.5; }
+    .caption {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 12px;
+      margin: 10px 0;
+      overflow-wrap: anywhere;
+    }
+    .caption strong { display: block; margin-bottom: 5px; }
+    .small { font-size: 13px; color: #64748b; line-height: 1.5; }
+    audio { width: 100%; margin-top: 10px; }
+    .hidden { display: none !important; }
+    .profile { background: #ecfdf5; border: 1px solid #a7f3d0; padding: 12px; border-radius: 10px; overflow-wrap: anywhere; }
+    .row { display: flex; gap: 8px; }
+    .row button { flex: 1; }
+    .notice { font-size: 13px; line-height: 1.5; color: #64748b; }
+    @media (max-width: 600px) {
+      main { margin-top: 12px; }
+      .card { padding: 16px; }
+      header { padding: 24px 14px; }
+      button { min-height: 46px; }
+    }
+  </style>
 </head>
 <body>
-<header><h1>🌐 Translative AI</h1><p>Simple, direct voice calls — your original voice only</p></header>
+<header>
+  <h1>🌐 Translative AI</h1>
+  <p>Speak naturally. Connect across languages.</p>
+</header>
+
 <main>
-<section class="card" id="loginCard"><h2>👤 Your profile</h2><p class="small">Create a simple profile on this device to enter the calling page.</p><label for="userName">Your name</label><input id="userName" autocomplete="name" placeholder="Enter your name"><label for="userEmail">Email (optional)</label><input id="userEmail" type="email" autocomplete="email" placeholder="Enter email"><div class="row"><button id="signupButton">Create profile</button><button id="loginButton" class="secondary">Continue on this device</button></div><p class="small">Prototype only: this profile is saved in this browser, not on a secure server. It will not automatically appear on another device.</p><p id="authStatus" class="small" role="status"></p></section>
-<section class="card hidden" id="profileCard"><span class="pill">PROFILE READY</span><h2>Welcome, <span id="profileName"></span> 👋</h2><div class="profile">Your personal profile ID: <strong id="personalId"></strong></div><button id="copyPersonalId" class="secondary">Copy personal ID</button><p class="small">To make a live call, share the temporary Live Call ID below. The personal profile ID is not the call ID.</p><button id="logoutButton" class="danger">Log out</button></section>
-<div id="appContent" class="hidden">
-<section class="card"><h2>📞 Make a voice call</h2><p class="small">Both people open this page, enable their microphone, and exchange their Live Call IDs. The other person's original microphone audio will play directly. No translation or computer-generated voice is used.</p><label>Your temporary Live Call ID</label><div class="myid" id="myId">Connecting to calling service…</div><button id="copyId" class="secondary">Copy my Live Call ID</button><label for="remoteId">Other person's Live Call ID</label><input id="remoteId" placeholder="Paste their Live Call ID here" autocomplete="off"><button id="micButton">1. Enable microphone</button><button id="callButton" disabled>2. Call this person</button><div class="call-actions"><button id="muteButton" class="secondary" disabled>Mute microphone</button><button id="hangupButton" class="danger" disabled>End call</button></div><p id="status" class="status" role="status">Starting calling service…</p><label>Incoming audio</label><audio id="remoteAudio" autoplay playsinline controls></audio><p class="small">Tip: use headphones to prevent echo. Allow microphone permission when your browser asks. Keep this page open during the call.</p></section>
-<section class="card"><h2>🔒 Important notes</h2><p class="small">• This is a browser-based prototype, not a full telephone service.<br>• Both users need internet access and a modern browser.<br>• Calls may fail on some networks if peer-to-peer connections are blocked.<br>• The temporary call ID may change after refreshing the page.<br>• Do not share private information with people you do not trust.</p></section>
-</div><div class="footer">Translative AI · Voice-call prototype</div>
+  <section class="card" id="loginCard">
+    <h2>👤 Login to Translative AI</h2>
+    <p class="small">Create a profile and get your personal Translative ID.</p>
+    <label for="userName">Your name</label>
+    <input id="userName" placeholder="Enter your name" autocomplete="name" />
+    <label for="userEmail">Email (for this demo profile)</label>
+    <input id="userEmail" type="email" placeholder="Enter your email" autocomplete="email" />
+    <div class="row">
+      <button id="signupButton">Create profile</button>
+      <button id="loginButton" class="secondary">Continue on this device</button>
+    </div>
+    <p class="notice">Prototype note: this demo stores the profile only in this browser. It is not secure account authentication and does not sync profiles across devices yet.</p>
+    <p class="status" id="authStatus" role="status"></p>
+  </section>
+
+  <section class="card hidden" id="profileCard">
+    <h2>Welcome, <span id="profileName"></span>! 👋</h2>
+    <div class="profile">Your personal ID: <strong id="personalId"></strong></div>
+    <button id="copyPersonalId" class="secondary">Copy personal ID</button>
+    <p class="small">Your personal ID identifies this demo profile. To call someone right now, share the temporary Live Room ID shown below. Permanent account-to-account calling needs a database/backend.</p>
+    <button id="logoutButton" class="danger">Log out</button>
+  </section>
+
+  <div id="appContent" class="hidden">
+  <section class="card">
+    <h2>1. Your language</h2>
+
+    <label for="sourceLang">I speak</label>
+    <select id="sourceLang">
+      <option value="ta-IN">Tamil</option>
+      <option value="en-US">English</option>
+      <option value="hi-IN">Hindi</option>
+      <option value="te-IN">Telugu</option>
+      <option value="ml-IN">Malayalam</option>
+      <option value="kn-IN">Kannada</option>
+      <option value="fr-FR">French</option>
+      <option value="es-ES">Spanish</option>
+    </select>
+
+    <label for="targetLang">Language I want to hear from the other person</label>
+    <select id="targetLang">
+      <option value="en-US">English</option>
+      <option value="ta-IN">Tamil</option>
+      <option value="hi-IN">Hindi</option>
+      <option value="te-IN">Telugu</option>
+      <option value="ml-IN">Malayalam</option>
+      <option value="kn-IN">Kannada</option>
+      <option value="fr-FR">French</option>
+      <option value="es-ES">Spanish</option>
+    </select>
+
+    <p class="small">
+      Each caller chooses their own speaking and target languages.
+      Both people must enable their microphone.
+    </p>
+  </section>
+
+  <section class="card">
+    <h2>2. Connect with another person</h2>
+    <p class="status">Your room ID:</p>
+    <div class="myid" id="myId">Connecting...</div>
+    <button id="copyId" class="secondary">Copy my ID</button>
+
+    <label for="remoteId">Other person's room ID</label>
+    <input id="remoteId" placeholder="Paste their ID here" />
+    <button id="callButton" disabled>Connect to this person</button>
+    <button id="hangupButton" class="danger" disabled>Disconnect</button>
+
+    <p class="status" id="status">Starting connection service...</p>
+    <p class="small">Translation-only connection: recognized text is sent to your partner, then translated and spoken. Raw microphone audio is not transmitted.</p>
+  </section>
+
+  <section class="card">
+    <h2>3. Live voice translation</h2>
+    <div class="caption">
+      <strong>Your recognized speech</strong>
+      <div id="ownCaption">Waiting for speech...</div>
+    </div>
+    <div class="caption">
+      <strong>Translated speech from the other person</strong>
+      <div id="remoteCaption">Waiting for translation...</div>
+    </div>
+    <p class="small">
+      Translation may be delayed or inaccurate. Browser speech recognition support depends on your browser and internet connection.
+    </p>
+  </section>
+  </div>
 </main>
+
 <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
 <script>
-const $=id=>document.getElementById(id);let peer=null,peerReady=false,localStream=null,currentCall=null,pendingCall=null,muted=false;
-function setStatus(message){$('status').textContent=message}
-function makeId(){return 'TA-'+Math.random().toString(36).slice(2,6).toUpperCase()+'-'+Math.random().toString(36).slice(2,6).toUpperCase()}
-function showProfile(profile){$('profileName').textContent=profile.name;$('personalId').textContent=profile.id;$('loginCard').classList.add('hidden');$('profileCard').classList.remove('hidden');$('appContent').classList.remove('hidden');initPeer()}
-function createProfile(){const name=$('userName').value.trim();const email=$('userEmail').value.trim();if(!name){$('authStatus').textContent='Please enter your name.';return}const profile={name,email,id:'TAU-'+Math.random().toString(36).slice(2,10).toUpperCase()};localStorage.setItem('translativeVoiceProfile',JSON.stringify(profile));showProfile(profile)}
-$('signupButton').addEventListener('click',createProfile);$('loginButton').addEventListener('click',()=>{const saved=localStorage.getItem('translativeVoiceProfile');if(saved){try{showProfile(JSON.parse(saved))}catch(e){$('authStatus').textContent='Saved profile could not be opened. Create a new profile.'}}else createProfile()});
-$('logoutButton').addEventListener('click',()=>{endCall();if(peer){peer.destroy();peer=null}localStorage.removeItem('translativeVoiceProfile');$('profileCard').classList.add('hidden');$('appContent').classList.add('hidden');$('loginCard').classList.remove('hidden');$('myId').textContent='Not connected';});
-$('copyPersonalId').addEventListener('click',()=>copyText($('personalId').textContent,'Personal ID copied.'));
-async function copyText(value,message){try{await navigator.clipboard.writeText(value);setStatus(message)}catch(e){setStatus('Copy is blocked by this browser. Please select and copy the ID manually.')}}
-$('copyId').addEventListener('click',()=>copyText($('myId').textContent,'Live Call ID copied. Share it with the person you want to call.'));
-function initPeer(){if(!window.Peer){setStatus('Calling library did not load. Check internet and refresh this page.');return}try{peer=new Peer();peer.on('open',id=>{peerReady=true;$('myId').textContent=id;$('callButton').disabled=!localStream;setStatus('Ready. Share your Live Call ID with the other person.')});peer.on('call',call=>{if(currentCall){call.close();return}if(!localStream){pendingCall=call;setStatus('Incoming call. Tap “Enable microphone” to answer.');return}answerCall(call)});peer.on('error',err=>{setStatus('Calling service error: '+(err.type||err.message||'unknown')+'. Refresh both devices and try again.')});peer.on('disconnected',()=>setStatus('Disconnected from calling service. Check internet and refresh if needed.'))}catch(e){setStatus('Could not start the calling service. Check your internet connection.')}}
-$('micButton').addEventListener('click',async()=>{if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){setStatus('Microphone calling requires a supported browser and a secure HTTPS page.');return}try{localStream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true},video:false});$('micButton').textContent='Microphone enabled ✓';$('micButton').disabled=true;$('callButton').disabled=!peerReady;setStatus('Microphone ready. Enter the other person’s Live Call ID and call.');if(pendingCall){const call=pendingCall;pendingCall=null;answerCall(call)}}catch(e){setStatus('Microphone permission failed. Allow microphone access in browser settings, then try again.')}});
-$('callButton').addEventListener('click',()=>{const id=$('remoteId').value.trim();if(!id){setStatus('Enter the other person’s Live Call ID first.');return}if(!peerReady){setStatus('Calling service is still connecting. Please wait.');return}if(!localStream){setStatus('Enable your microphone first.');return}if(id===$('myId').textContent){setStatus('You cannot call your own ID. Enter the other person’s ID.');return}try{const call=peer.call(id,localStream);if(!call){setStatus('Could not start the call. Check the ID and try again.');return}attachCall(call,'Calling the other person…')}catch(e){setStatus('Call could not start. Check the ID and internet connection.')}});
-function answerCall(call){try{call.answer(localStream);attachCall(call,'Answering incoming call…')}catch(e){setStatus('Could not answer this call. Please try again.')}}
-function attachCall(call,message){if(currentCall&&currentCall!==call)currentCall.close();currentCall=call;setStatus(message);$('callButton').disabled=true;$('hangupButton').disabled=false;$('muteButton').disabled=false;call.on('stream',stream=>{$('remoteAudio').srcObject=stream;$('remoteAudio').play().then(()=>setStatus('🟢 Connected. You can speak now.')).catch(()=>setStatus('Connected. Tap the audio player if you cannot hear the other person.'))});call.on('close',()=>{if(currentCall===call)cleanupCall('Call ended.')});call.on('error',e=>{if(currentCall===call)cleanupCall('Call error. Check internet and try calling again.')})}
-function cleanupCall(message){currentCall=null;$('remoteAudio').srcObject=null;$('callButton').disabled=!peerReady||!localStream;$('hangupButton').disabled=true;$('muteButton').disabled=true;muted=false;$('muteButton').textContent='Mute microphone';setStatus(message)}
-function endCall(){if(currentCall){const c=currentCall;currentCall=null;try{c.close()}catch(e){}}cleanupCall('Call ended. You can start another call.')}
-$('hangupButton').addEventListener('click',endCall);$('muteButton').addEventListener('click',()=>{if(!localStream)return;muted=!muted;localStream.getAudioTracks().forEach(track=>track.enabled=!muted);$('muteButton').textContent=muted?'Unmute microphone':'Mute microphone';setStatus(muted?'Microphone muted.':'Microphone unmuted.')});
-window.addEventListener('beforeunload',()=>{if(currentCall)currentCall.close();if(localStream)localStream.getTracks().forEach(t=>t.stop());if(peer)peer.destroy()});
-try{const saved=localStorage.getItem('translativeVoiceProfile');if(saved)showProfile(JSON.parse(saved))}catch(e){}
+  const $ = id => document.getElementById(id);
+
+  const languageCodes = {
+    "ta-IN": "ta",
+    "en-US": "en",
+    "hi-IN": "hi",
+    "te-IN": "te",
+    "ml-IN": "ml",
+    "kn-IN": "kn",
+    "fr-FR": "fr",
+    "es-ES": "es"
+  };
+
+  let peer;
+  let peerReady = false;
+  let dataConnection = null;
+  let recognition = null;
+  let recognitionActive = false;
+  let callStarted = false;
+  let speakingTranslation = false;
+
+  function status(message) {
+    $("status").textContent = message;
+  }
+
+  // PeerJS data-only connection: do not send raw microphone audio.
+  try {
+    peer = new Peer();
+    peer.on("open", id => {
+      peerReady = true;
+      $("myId").textContent = id;
+      $("callButton").disabled = false;
+      status("Connection service ready. Share this live room ID.");
+    });
+    peer.on("error", error => {
+      peerReady = Boolean(peer && peer.open);
+      status("Connection service error: " + (error.type || error.message || "unknown") + ". Refresh both devices and try again.");
+    });
+    peer.on("connection", connection => setupDataConnection(connection));
+    peer.on("disconnected", () => status("Disconnected from connection service. Check your internet."));
+  } catch (error) { status("Could not start connection service. Check your internet."); }
+
+  async function startCall() {
+    const remoteId = $("remoteId").value.trim();
+    if (!peer || !peerReady || !peer.open) { status("Wait until your live room ID appears."); return; }
+    if (!remoteId || remoteId === $("myId").textContent || $("myId").textContent === "Connecting...") {
+      status("Enter the other person's valid live room ID."); return;
+    }
+    try {
+      status("Connecting to partner...");
+      const connection = peer.connect(remoteId, { reliable: true });
+      setupDataConnection(connection);
+    } catch (error) { status("Could not connect. Check both current room IDs and internet."); }
+  }
+
+  function setupDataConnection(connection) {
+    dataConnection = connection;
+
+    connection.on("open", () => {
+      status("Translation link connected. You can start speaking.");
+      callStarted = true;
+      updateCallButtons();
+      startTranslation();
+    });
+
+    connection.on("data", async message => {
+      if (!message || typeof message !== "object") return;
+
+      if (message.type === "speech") {
+        try {
+          const translated = await translateText(message.text, message.sourceLanguage, $("targetLang").value);
+          $("remoteCaption").textContent = translated;
+          if (translated && "speechSynthesis" in window) {
+            // Pause recognition while translated voice plays so the microphone
+            // does not hear the speaker output and send it back as new speech.
+            speakingTranslation = true;
+            if (recognition && recognitionActive) {
+              try { recognition.stop(); } catch (error) {}
+            }
+            window.speechSynthesis.cancel();
+            const utterance = new SpeechSynthesisUtterance(translated);
+            utterance.lang = $("targetLang").value;
+            utterance.onend = () => {
+              speakingTranslation = false;
+              restartRecognitionAfterTranslation();
+            };
+            utterance.onerror = () => {
+              speakingTranslation = false;
+              restartRecognitionAfterTranslation();
+            };
+            window.speechSynthesis.speak(utterance);
+          }
+        } catch (error) {
+          $("remoteCaption").textContent = "Translation failed. Please try speaking again.";
+          status("Translation failed. Check internet or translation service limits.");
+        }
+      } else if (message.type === "notice") {
+        status(message.text);
+      }
+    });
+
+    connection.on("close", () => {
+      dataConnection = null;
+      stopRecognition();
+      status("Translation link closed.");
+    });
+
+    connection.on("error", () => {
+      status("Translation link error. Try reconnecting.");
+    });
+  }
+
+  function updateCallButtons() {
+    $("hangupButton").disabled = !dataConnection;
+  }
+
+  async function translateText(text, sourceLocale, targetLocale) {
+    const source = languageCodes[sourceLocale] || languageCodes[$("sourceLang").value];
+    const target = languageCodes[targetLocale] || languageCodes[$("targetLang").value];
+
+    if (source === target) return text;
+
+    const url =
+      "https://api.mymemory.translated.net/get?q=" +
+      encodeURIComponent(text) +
+      "&langpair=" + encodeURIComponent(source + "|" + target);
+
+    const response = await fetch(url);
+    if (!response.ok) throw new Error("Translation request failed");
+
+    const result = await response.json();
+
+    if (result.responseStatus !== 200 ||
+        !result.responseData ||
+        !result.responseData.translatedText) {
+      throw new Error("Translation service could not translate this text");
+    }
+
+    return result.responseData.translatedText;
+  }
+
+  function startTranslation() {
+    if (!dataConnection || !dataConnection.open) return;
+    if (recognitionActive) return;
+
+    const SpeechRecognition =
+      window.SpeechRecognition || window.webkitSpeechRecognition;
+
+    if (!SpeechRecognition) {
+      status("Speech recognition is not supported in this browser.");
+      return;
+    }
+
+    recognitionActive = true;
+    recognition = new SpeechRecognition();
+    recognition.lang = $("sourceLang").value;
+    recognition.continuous = true;
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+
+    recognition.onresult = async event => {
+      if (speakingTranslation) return;
+      const result = event.results[event.results.length - 1];
+      if (!result.isFinal) return;
+
+      const originalText = result[0].transcript.trim();
+      if (!originalText) return;
+
+      $("ownCaption").textContent = originalText;
+
+      try {
+        if (dataConnection && dataConnection.open) {
+          dataConnection.send({
+            type: "speech",
+            text: originalText,
+            sourceLanguage: $("sourceLang").value
+          });
+        }
+      } catch (error) {
+        status("Translation unavailable. Check internet or API limits.");
+      }
+    };
+
+    recognition.onerror = event => {
+      if (event.error !== "no-speech" && event.error !== "aborted") {
+        status("Speech recognition issue: " + event.error);
+      }
+    };
+
+    recognition.onend = () => {
+      if (!speakingTranslation && recognitionActive && dataConnection && dataConnection.open) {
+        try {
+          recognition.start();
+        } catch (error) {
+          // The browser may still be restarting recognition.
+        }
+      }
+    };
+
+    try {
+      recognition.start();
+    } catch (error) {
+      recognitionActive = false;
+      status("Could not start speech recognition. Try again.");
+    }
+  }
+
+  function restartRecognitionAfterTranslation() {
+    if (!recognitionActive || !dataConnection || !dataConnection.open || !recognition) return;
+    try {
+      recognition.start();
+    } catch (error) {
+      // Recognition may already be starting again in the browser.
+    }
+  }
+
+  function stopRecognition() {
+    recognitionActive = false;
+    if (recognition) {
+      try { recognition.stop(); } catch (error) {}
+      recognition = null;
+    }
+  }
+
+  function stopTranslation() {
+    stopRecognition();
+    speakingTranslation = false;
+    if ("speechSynthesis" in window) {
+      window.speechSynthesis.cancel();
+    }
+  }
+
+  function hangUp() {
+    stopTranslation();
+    if (dataConnection) { dataConnection.close(); dataConnection = null; }
+    callStarted = false;
+    $("remoteCaption").textContent = "Disconnected. Waiting for translation...";
+    updateCallButtons();
+    status("Disconnected. Your live room ID is still available.");
+  }
+
+  // Demo profile: local to this browser only (not secure server-side authentication).
+  function makePersonalId() {
+    return "TA-" + Math.random().toString(36).slice(2, 8).toUpperCase();
+  }
+
+  function showProfile(profile) {
+    $("profileName").textContent = profile.name;
+    $("personalId").textContent = profile.id;
+    $("loginCard").classList.add("hidden");
+    $("profileCard").classList.remove("hidden");
+    $("appContent").classList.remove("hidden");
+  }
+
+  function createProfile() {
+    const name = $("userName").value.trim();
+    const email = $("userEmail").value.trim().toLowerCase();
+    if (!name || !email || !email.includes("@")) {
+      $("authStatus").textContent = "Enter your name and a valid email address.";
+      return;
+    }
+    const profile = { name, email, id: makePersonalId() };
+    localStorage.setItem("translativeDemoProfile", JSON.stringify(profile));
+    showProfile(profile);
+  }
+
+  function continueProfile() {
+    const saved = localStorage.getItem("translativeDemoProfile");
+    if (saved) {
+      try { showProfile(JSON.parse(saved)); return; } catch (error) {}
+    }
+    $("authStatus").textContent = "No profile saved on this device yet. Create a profile first.";
+  }
+
+  $("signupButton").addEventListener("click", createProfile);
+  $("loginButton").addEventListener("click", continueProfile);
+  $("logoutButton").addEventListener("click", () => {
+    localStorage.removeItem("translativeDemoProfile");
+    $("profileCard").classList.add("hidden");
+    $("appContent").classList.add("hidden");
+    $("loginCard").classList.remove("hidden");
+  });
+  $("copyPersonalId").addEventListener("click", async () => {
+    try {
+      await navigator.clipboard.writeText($("personalId").textContent);
+      $("authStatus").textContent = "Personal ID copied.";
+    } catch (error) {
+      $("authStatus").textContent = "Please select and copy your personal ID.";
+    }
+  });
+  continueProfile();
+
+  $("callButton").addEventListener("click", startCall);
+  $("hangupButton").addEventListener("click", hangUp);
+
+  $("copyId").addEventListener("click", async () => {
+    const id = $("myId").textContent;
+    try {
+      await navigator.clipboard.writeText(id);
+      status("Room ID copied. Share it with the other person.");
+    } catch (error) {
+      status("Select and copy your room ID manually.");
+    }
+  });
+
+  $("sourceLang").addEventListener("change", () => {
+    if (recognitionActive) {
+      stopRecognition();
+      startTranslation();
+    }
+  });
+
+  window.addEventListener("beforeunload", () => {
+    stopTranslation();
+    if (dataConnection) { try { dataConnection.close(); } catch (error) {} }
+  });
 </script>
-</body></html>
+</body>
+</html>
